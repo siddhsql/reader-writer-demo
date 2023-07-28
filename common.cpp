@@ -2,6 +2,8 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <thread>
+#include <ncurses.h>
+#include <cstdio> // For C string formatting functions
 
 enum class LockMode { EXCLUSIVE, SHARED };
 
@@ -54,14 +56,19 @@ class Common {
                 throw std::runtime_error("duplicate call to start() is not allowed");
             }
             is_started = true;
-            std::cout << label_ << " " << id_ << " is waiting for lock..." << std::endl;            
+            char buffer[100];
+            snprintf(buffer, sizeof(buffer), "%s %d is waiting for lock...\n", label_.c_str(), id_);
+            printw(buffer);
         }
 
         void start_post_lock() {
             std::unique_lock<std::mutex> lock {mx}; // lock will get released automatically when it goes out of scope
-            std::cout << label_ << " " << id_ << " is " << action_ << "..." << std::endl;
+            char buffer[100];
+            snprintf(buffer, sizeof(buffer), "%s %d is %s...\n", label_.c_str(), id_, action_.c_str());
+            printw(buffer);
             cv.wait(lock, [this] { return is_finished; });
-            std::cout << label_ << " " << id_ << " is exiting..." << std::endl;
+            snprintf(buffer, sizeof(buffer), "%s %d is exiting...\n", label_.c_str(), id_);
+            printw(buffer);            
         }
 
         void finish_() {
@@ -71,7 +78,7 @@ class Common {
             is_finished = true;
             std::scoped_lock lock {mx}; // lock will get released automatically when it goes out of scope
             cv.notify_one();    // wake up the other thread waiting on this cv
-        }
+        }        
 };
 
 class Reader : public Common {
