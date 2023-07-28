@@ -11,24 +11,27 @@ int writer_counter = 0;
 std::deque<Reader*> readers;
 std::deque<Writer*> writers;
 
-void process_key(char key) {
+bool process_key(char key) {
     if (key == 'r') {
         // start a reader
         auto reader = new Reader(reader_counter++, mx);
         reader->start();
         readers.push_back(reader);
+        return true;
     } else if (key == 'w') {
         // start a writer
         auto writer = new Writer(writer_counter++, mx);
         writer->start();
         writers.push_back(writer);
+        return true;
     } else if (key == 'x') {
         // exit reader
         if (!readers.empty()) {
             auto reader = readers.front();
             readers.pop_front();
             reader->finish();
-        }        
+        }
+        return true;
     } else if (key == 'q') {
         // exit writer
         if (!writers.empty()) {
@@ -36,8 +39,9 @@ void process_key(char key) {
             writers.pop_front();
             writer->finish();
         }
+        return true;
     } else {
-        std::cout << "invalid key pressed";
+        return false;        
     }
 }
 
@@ -51,20 +55,32 @@ int main() {
     keypad(stdscr, TRUE); // Enable special keys, e.g., arrow keys
 
     printw("Welcome to reader-writer concurrency demo.\n");
-    // Prompt the user to press any key
-    printw("Please press any key:\n");
+    printw("\nInstructions: Press one of the following keys:\n");
+    printw("r will start a reader\n");
+    printw("w will start a writer\n");
+    printw("x will exit a reader\n");
+    printw("q will exit a writer\n");
+    printw("any other key will exit the program\n");
+    printw("\nThe only difference between a reader and writer is that a reader acquires a lock in shared mode (S) whereas a writer acquires a lock in exclusive mode (X)\n");
+    printw("Your objective is to verify following assertions:\n");
+    printw("Assertion 1: No writer can start writing while a reader is reading. To verify this first start a reader (r) and then try to start a writer (w).\n");
+    printw("Assertion 2: No writer can start writing while another writer is writing. To verify this first start a writer (w) and then try to start another writer (w).\n");
+    printw("Assertion 3: No reader can start reading while a writer is writing. To verify this first start a writer (w) and then try to start another reader (r).\n");
+    printw("Assertion 4: Multiple readers can read concurrently at the same time provided no writer is writing. To verify this first start a reader (r) and then try to start another reader (r).\n");
+    // Prompt the user to press any key    
+    printw("\nLet's get started now. Please press any key:\n");
     refresh();
+    bool cont = true;
 
-    while (true) {
+    while (cont) {
         // Read a single character without requiring Enter
         key = getch();
-        process_key(key);
+        cont = process_key(key);
         refresh();
     }
-
+    
+    // exit
     // Clean up ncurses
-    getch(); // Wait for another key press before exiting
     endwin();
-
     return 0;
 }
