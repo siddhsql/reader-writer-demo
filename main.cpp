@@ -3,8 +3,7 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <deque>
-#include "reader.cpp"
-#include "writer.cpp"
+#include "common.cpp"
 
 std::shared_mutex mx;   // the mutex for reader-writer lock
 int reader_counter = 0;
@@ -51,7 +50,7 @@ int main() {
     noecho(); // Don't echo pressed characters to the screen
     keypad(stdscr, TRUE); // Enable special keys, e.g., arrow keys
 
-    printw("welcome to reader-writer lock concurrency demo. this demo will show you reader-writer lock in action.");
+    printw("Welcome to reader-writer concurrency demo.\n");
     // Prompt the user to press any key
     printw("Please press any key:\n");
     refresh();

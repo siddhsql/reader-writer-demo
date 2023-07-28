@@ -1,2 +1,2 @@
 #!/bin/bash
-g++ -o main reader.cpp writer.cpp main.cpp -lncurses -std=c++17
+g++ -o main common.cpp main.cpp -lncurses -std=c++17

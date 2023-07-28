@@ -33,8 +33,8 @@ class Common {
         std::shared_mutex& rw_mutex_;
         bool is_started;
         bool is_finished;        
-        const std::string& label_;
-        const std::string& action_;
+        const std::string label_;   // do not use const std::string& here. see: https://stackoverflow.com/questions/76789682/c-weird-behavior-with-stdstring
+        const std::string action_;
         int id_;
         LockMode lock_mode_;
 
