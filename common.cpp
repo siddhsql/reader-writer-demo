@@ -12,7 +12,6 @@ enum class LockMode { EXCLUSIVE, SHARED };
  */
 class Common {
     public:
-
         Common(const std::string& label, const std::string& action, int id, std::shared_mutex& rw_mutex, LockMode lock_mode)
             : rw_mutex_(rw_mutex), label_(label), action_(action), id_(id), lock_mode_(lock_mode) {
             is_started = false;
@@ -21,7 +20,7 @@ class Common {
         
         void start() {
             std::thread t1([this]() { start_(); });
-            t1.detach();
+            t1.detach();    // permits the thread to execute independently from the thread handle
         }        
 
         void finish() {
@@ -47,7 +46,7 @@ class Common {
             } else if (lock_mode_ == LockMode::SHARED) {
                 std::shared_lock<std::shared_mutex> lock(rw_mutex_); // lock will get released automatically when it goes out of scope
                 start_post_lock();
-            }            
+            }
         }
 
         void start_pre_lock() {
@@ -70,19 +69,17 @@ class Common {
                 throw std::runtime_error("duplicate call to finish() is not allowed");
             }
             is_finished = true;
-            std::scoped_lock lock {mx};
-            cv.notify_one();
+            std::scoped_lock lock {mx}; // lock will get released automatically when it goes out of scope
+            cv.notify_one();    // wake up the other thread waiting on this cv
         }
 };
 
 class Reader : public Common {
     public:
-
         Reader(int id, std::shared_mutex& rw_mutex) : Common {"Reader", "reading", id, rw_mutex, LockMode::SHARED} {}
 };
 
 class Writer : public Common {
     public:
-
         Writer(int id, std::shared_mutex& rw_mutex) : Common {"Writer", "writing", id, rw_mutex, LockMode::EXCLUSIVE} {}                    
 };
