@@ -30,6 +30,7 @@ bool process_key(char key) {
             auto reader = readers.front();
             readers.pop_front();
             reader->finish();
+            delete reader;
         }
         return true;
     } else if (key == 'q') {
@@ -38,6 +39,7 @@ bool process_key(char key) {
             auto writer = writers.front();
             writers.pop_front();
             writer->finish();
+            delete writer;
         }
         return true;
     } else {

@@ -18,6 +18,7 @@ class Common {
             : rw_mutex_(rw_mutex), label_(label), action_(action), id_(id), lock_mode_(lock_mode) {
             is_started = false;
             is_finished = false;
+            can_exit_ = false;
         }
         
         void start() {
@@ -34,7 +35,8 @@ class Common {
         std::mutex mx;
         std::shared_mutex& rw_mutex_;
         bool is_started;
-        bool is_finished;        
+        bool is_finished;
+        bool can_exit_;
         const std::string label_;   // do not use const std::string& here. see: https://stackoverflow.com/questions/76789682/c-weird-behavior-with-stdstring
         const std::string action_;
         int id_;
@@ -68,7 +70,9 @@ class Common {
             printw(buffer);
             cv.wait(lock, [this] { return is_finished; });
             snprintf(buffer, sizeof(buffer), "%s %d is exiting...\n", label_.c_str(), id_);
-            printw(buffer);            
+            printw(buffer);
+            can_exit_ = true;
+            cv.notify_one();
         }
 
         void finish_() {
@@ -76,8 +80,9 @@ class Common {
                 throw std::runtime_error("duplicate call to finish() is not allowed");
             }
             is_finished = true;
-            std::scoped_lock lock {mx}; // lock will get released automatically when it goes out of scope
+            std::unique_lock lock {mx}; // lock will get released automatically when it goes out of scope
             cv.notify_one();    // wake up the other thread waiting on this cv
+            cv.wait(lock, [this] { return can_exit_; });
         }        
 };
 
