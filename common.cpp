@@ -15,16 +15,14 @@ enum class LockMode { EXCLUSIVE, SHARED };
 class Common {
     public:
         Common(const std::string& label, const std::string& action, int id, std::shared_mutex& rw_mutex, LockMode lock_mode)
-            : rw_mutex_(rw_mutex), label_(label), action_(action), id_(id), lock_mode_(lock_mode) {
+            : rw_mutex_(rw_mutex), label_(label), action_(action), id_(id), lock_mode_(lock_mode) {                
             is_started = false;
-            is_finished = false;
-            can_exit_ = false;
+            is_finished = false;            
         }
         
         void start() {
-            std::thread t1([this]() { start_(); });
-            t1.detach();    // permits the thread to execute independently from the thread handle
-        }        
+            t1_ = std::thread ([this]() { start_(); });
+        }
 
         void finish() {
             finish_();
@@ -34,9 +32,9 @@ class Common {
         std::condition_variable cv;
         std::mutex mx;
         std::shared_mutex& rw_mutex_;
+        std::thread t1_;    // we don't use & here because references must be initialized and they cannot be null
         bool is_started;
-        bool is_finished;
-        bool can_exit_;
+        bool is_finished;        
         const std::string label_;   // do not use const std::string& here. see: https://stackoverflow.com/questions/76789682/c-weird-behavior-with-stdstring
         const std::string action_;
         int id_;
@@ -71,19 +69,21 @@ class Common {
             cv.wait(lock, [this] { return is_finished; });
             snprintf(buffer, sizeof(buffer), "%s %d is exiting...\n", label_.c_str(), id_);
             printw(buffer);
-            can_exit_ = true;
-            cv.notify_one();
         }
 
-        void finish_() {
+        void finish_() {            
             if (is_finished) {
                 throw std::runtime_error("duplicate call to finish() is not allowed");
             }
             is_finished = true;
-            std::unique_lock lock {mx}; // lock will get released automatically when it goes out of scope
-            cv.notify_one();    // wake up the other thread waiting on this cv
-            cv.wait(lock, [this] { return can_exit_; });
-        }        
+            // the braces are necessary to release the lock before waiting on join
+            // without the braces, there will be a deadlock
+            {
+                std::unique_lock lock {mx}; // lock will get released automatically when it goes out of scope              
+                cv.notify_one();    // wake up the other thread waiting on this cv
+            }
+            t1_.join();
+        }
 };
 
 class Reader : public Common {
