@@ -55,6 +55,7 @@ int main() {
     cbreak(); // Line buffering disabled, pass on everything to me
     noecho(); // Don't echo pressed characters to the screen
     keypad(stdscr, TRUE); // Enable special keys, e.g., arrow keys
+    scrollok(stdscr, TRUE); // Enable scrolling
 
     printw("Welcome to reader-writer concurrency demo.\n");
     printw("\nInstructions: Press one of the following keys:\n");
