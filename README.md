@@ -49,3 +49,35 @@ S stands for shared lock and X stands for exclusive lock.
 ```
 ./main
 ```
+
+## Understanding the Internals
+
+The most important piece of code to understand in this program is this:
+
+```
+cv.wait(lock, [this] { return is_finished; });
+```
+
+What does it do? let's break it down into step-by-step:
+
+1. `[this] { return is_finished; }` defines a lambda function in C++. The arguments inside`[...]` become part of the closure variables.
+2. The lambda function is evaluated.
+3. If the lambda function returns `true`, the thread will block until it has acquired the `lock`.
+4. If the lambda function returns `false`, the thread will release the `lock` (only if it already has it), and will enter sleep state until its woken up by another thread via a call to `notify` or `notify_one`.
+5. That's it. When the thread wakes up, all the steps starting from 1 will be repeated again.
+
+The point to note here is that in step 3, it is entirely possible that the lambda function returns true, the thread blocks until it has acquired the lock
+but by the time it has acquired the lock and ready to execute the next piece of code, the condition in the lambda function might no longer be true.
+Because of this, in some places I have seen a `while` loop being used to recheck if the condition is still true (e.g. refer the section titled
+Monitor usage on [this](https://en.wikipedia.org/wiki/Monitor_(synchronization)) page; I do not do this in my code btw):
+
+```
+std::unique_lock<std::mutex> lock {mx}; // acquire the lock
+while (!condition) {                    // if condition is already true we don't need to enter the loop
+    cv.wait(lock, [this] { return condition; });
+}
+```
+
+To finish off, lets also cover what `notify` and `notify_one` do. When a thread calls `notify`, it will wake up all other threads waiting
+on the CV (condition variable) whereas `notify_one` will wake up only one thread (the thread to wake up is picked at random amongst the pool of waiting
+threads). waiting = sleeping.
